@@ -76,10 +76,11 @@ process.mergedMuons = cms.EDProducer("CaloMuonMerger",
     caloMuons = cms.InputTag("calomuons"),
     tracks    = cms.InputTag("generalTracks"),
     minCaloCompatibility = calomuons.minCaloCompatibility,
-    ## Apply some minimal pt cut
-    muonsCut     = cms.string("pt > 3 && track.isNonnull"),
-    caloMuonsCut = cms.string("pt > 3"),
-    tracksCut    = cms.string("pt > 3"),
+    ## Apply some minimal pt cut 
+    ## changed pT cut value to 2 GeV ( 13 May 2015 )
+    muonsCut     = cms.string("pt > 2 && track.isNonnull"),
+    caloMuonsCut = cms.string("pt > 2"),
+    tracksCut    = cms.string("pt > 2"),
 )
 
 ## ==== Trigger matching
@@ -117,7 +118,8 @@ process.probeMuons = cms.EDFilter("PATMuonSelector",
 process.tpPairs = cms.EDProducer("CandViewShallowCloneCombiner",
     #cut = cms.string('60 < mass < 140 && abs(daughter(0).vz - daughter(1).vz) < 4'),
     #cut = cms.string('60 < mass && abs(daughter(0).vz - daughter(1).vz) < 4'),
-    cut = cms.string('2 < mass && abs(daughter(0).vz - daughter(1).vz) < 4'), # J/psi->mumu
+    ## changed the mass cut value and vertex cut on daughters ( 13 May 2015 )
+    cut = cms.string('2.8 < mass < 3.4 && abs(daughter(0).vz - daughter(1).vz) < 1'), # J/psi->mumu
     decay = cms.string('tagMuons@+ probeMuons@-')
 )
 process.onePair = cms.EDFilter("CandViewCountFilter", src = cms.InputTag("tpPairs"), minNumber = cms.uint32(1))
@@ -280,7 +282,8 @@ process.probeMuonsSta = cms.EDFilter("PATMuonSelector",
 process.probeMuonsMCMatchSta = process.tagMuonsMCMatch.clone(src = "probeMuonsSta")
 
 #process.tpPairsSta = process.tpPairs.clone(decay = "tagMuons@+ probeMuonsSta@-", cut = '40 < mass < 150')
-process.tpPairsSta = process.tpPairs.clone(decay = "tagMuons@+ probeMuonsSta@-", cut = '0 < mass < 10') # J/psi->mumu
+## changed the mass cut value ( 13 May 2015 )
+process.tpPairsSta = process.tpPairs.clone(decay = "tagMuons@+ probeMuonsSta@-", cut = '2 < mass < 5') # J/psi->mumu
 
 process.onePairSta = cms.EDFilter("CandViewCountFilter", src = cms.InputTag("tpPairsSta"), minNumber = cms.uint32(1))
 
