@@ -86,8 +86,9 @@ process.mergedMuons = cms.EDProducer("CaloMuonMerger",
 ## ==== Trigger matching
 process.load("MuonAnalysis.MuonAssociators.patMuonsWithTrigger_cff")
 ## with some customization
-process.muonMatchHLTL2.maxDeltaR = 0.3 # Zoltan tuning - it was 0.5
-process.muonMatchHLTL3.maxDeltaR = 0.1
+## commented on 13 may 2015
+#process.muonMatchHLTL2.maxDeltaR = 0.3 # Zoltan tuning - it was 0.5
+#process.muonMatchHLTL3.maxDeltaR = 0.1
 from MuonAnalysis.MuonAssociators.patMuonsWithTrigger_cff import *
 changeRecoMuonInput(process, "mergedMuons")
 #useExtendedL1Match(process) #MM no idea what the sequence did, not available since git migration
@@ -99,20 +100,25 @@ process.load("MuonAnalysis.TagAndProbe.common_modules_cff")
 
 process.tagMuons = cms.EDFilter("PATMuonSelector",
     src = cms.InputTag("patMuonsWithTrigger"),
-    cut = cms.string("pt > 15 && "+MuonIDFlags.Tight2012.value()+
-                     " && !triggerObjectMatchesByCollection('hltL3MuonCandidates').empty()"+
-                     " && pfIsolationR04().sumChargedHadronPt/pt < 0.2"),
+##    cut = cms.string("pt > 15 && "+MuonIDFlags.Tight2012.value()+
+##                     " && !triggerObjectMatchesByCollection('hltL3MuonCandidates').empty()"+
+##                   " && pfIsolationR04().sumChargedHadronPt/pt < 0.2"),
+    cut = cms.string("(isGlobalMuon || numberOfMatchedStations > 1) && pt > 5 && !triggerObjectMatchesByCollection('hltL3MuonCandidates').empty()"),
 )
+
+## commented on 13 may 2015
+''' 
 if TRIGGER != "SingleMu":
     process.tagMuons.cut = ("pt > 6 && (isGlobalMuon || isTrackerMuon) && isPFMuon "+
                             " && !triggerObjectMatchesByCollection('hltL3MuonCandidates').empty()"+
                             " && pfIsolationR04().sumChargedHadronPt/pt < 0.2")
-
+'''
 process.oneTag  = cms.EDFilter("CandViewCountFilter", src = cms.InputTag("tagMuons"), minNumber = cms.uint32(1))
 
 process.probeMuons = cms.EDFilter("PATMuonSelector",
     src = cms.InputTag("patMuonsWithTrigger"),
-    cut = cms.string("track.isNonnull"),  # no real cut now
+##    cut = cms.string("track.isNonnull"),  # no real cut now
+    cut = cms.string("track.isNonnull && (!triggerObjectMatchesByCollection('hltMuTrackJpsiEffCtfTrackCands').empty() || !triggerObjectMatchesByCollection('hltMuTrackJpsiCtfTrackCands').empty() || !triggerObjectMatchesByCollection('hltL2MuonCandidates').empty())"),
 )
 
 process.tpPairs = cms.EDProducer("CandViewShallowCloneCombiner",
@@ -200,10 +206,14 @@ process.tpTree = cms.EDAnalyzer("TagProbeFitTreeProducer",
         newTuneP_probe_trackType     = cms.InputTag("newTunePVals", "trackType"),
         newTuneP_mass                = cms.InputTag("newTunePVals", "mass"),
     ),
-    pairFlags = cms.PSet(
+
+## commented on 13 may'15
+#    pairFlags = cms.PSet(
         #BestZ = cms.InputTag("bestPairByZMass"),
-        BestJpsi = cms.InputTag("bestPairByJpsiMass"), # J/psi->mumu   
-    ),
+#        BestJpsi = cms.InputTag("bestPairByJpsiMass"), # J/psi->mumu   
+#    ),
+
+    pairFlags = cms.PSet(),
     isMC           = cms.bool(True),
     addRunLumiInfo = cms.bool(True),
     tagMatches       = cms.InputTag("tagMuonsMCMatch"),
@@ -214,10 +224,12 @@ process.tpTree = cms.EDAnalyzer("TagProbeFitTreeProducer",
     checkMotherInUnbiasEff = cms.bool(True),
     allProbes              = cms.InputTag("probeMuons"),
 )
+
+'''
 if TRIGGER != "SingleMu":
     for K,F in MuonIDFlags.parameters_().iteritems():
         setattr(process.tpTree.tagFlags, K, F)
-
+'''
 
 process.load("MuonAnalysis.TagAndProbe.muon.tag_probe_muon_extraIso_cfi")
 
@@ -229,7 +241,7 @@ process.extraProbeVariablesSeq = cms.Sequence(
     process.muonDxyPVdzmin 
 )
 
-process.bestPairByJpsiMass = process.bestPairByZMass.clone(mass = 3.1) # J/psi->mumu
+#process.bestPairByJpsiMass = process.bestPairByZMass.clone(mass = 3.1) # J/psi->mumu
 
 process.tnpSimpleSequence = cms.Sequence(
     process.tagMuons   * process.tagMuonsMCMatch   +
@@ -242,7 +254,7 @@ process.tnpSimpleSequence = cms.Sequence(
     process.extraProbeVariablesSeq +
     process.probeMultiplicity + 
     #process.bestPairByZMass + 
-    process.bestPairByJpsiMass + # J/psi->mumu
+    #process.bestPairByJpsiMass + # J/psi->mumu
     process.newTunePVals +
     process.muonDxyPVdzminTags +
     process.tpTree
@@ -287,13 +299,15 @@ process.tpPairsSta = process.tpPairs.clone(decay = "tagMuons@+ probeMuonsSta@-",
 
 process.onePairSta = cms.EDFilter("CandViewCountFilter", src = cms.InputTag("tpPairsSta"), minNumber = cms.uint32(1))
 
+## commented on 13 may 2015
+'''
 process.staToTkMatch.maxDeltaR     = 0.3
 process.staToTkMatch.maxDeltaPtRel = 2.
 #process.staToTkMatchNoZ.maxDeltaR     = 0.3
 #process.staToTkMatchNoZ.maxDeltaPtRel = 2.
 process.staToTkMatchNoJPsi.maxDeltaR     = 0.3
 process.staToTkMatchNoJPsi.maxDeltaPtRel = 2.
-
+'''
 process.load("MuonAnalysis.TagAndProbe.tracking_reco_info_cff")
 
 process.tpTreeSta = process.tpTree.clone(
@@ -378,6 +392,8 @@ process.tagAndProbeSta = cms.Path(
 ##   |_|  \__,_|_|\_\___| |_| \_\__,_|\__\___||___/
 ##                                                 
 ##   
+
+'''
 process.load("MuonAnalysis.TagAndProbe.fakerate_all_cff")
 
 process.fakeRateJetPlusProbeTree = process.tpTree.clone(
@@ -430,6 +446,8 @@ process.fakeRateZPlusProbe = cms.Path(
     process.fakeRateZPlusProbeTree
 )
 
+
+
 process.schedule = cms.Schedule(
    process.tagAndProbe, 
    process.tagAndProbeSta, 
@@ -437,6 +455,8 @@ process.schedule = cms.Schedule(
    process.fakeRateWPlusProbe,
    process.fakeRateZPlusProbe,
 )
+
+'''
 
 #process.RandomNumberGeneratorService.tkTracksNoZ = cms.PSet( initialSeed = cms.untracked.uint32(81) )
 # J/psi->mumu
