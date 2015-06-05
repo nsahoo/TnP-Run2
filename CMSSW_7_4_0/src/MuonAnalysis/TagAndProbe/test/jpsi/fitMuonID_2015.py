@@ -22,7 +22,7 @@ process.MessageLogger.cerr.FwkReport.reportEvery = 1000
 
 process.source = cms.Source("EmptySource")
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10000) )
 
 Template = cms.EDAnalyzer("TagProbeFitTreeAnalyzer",
     NumCPU = cms.uint32(1),
@@ -69,6 +69,11 @@ Template = cms.EDAnalyzer("TagProbeFitTreeAnalyzer",
         Mu7_Track7_Jpsi_TK = cms.vstring("ProbeTrigger_Track0", "dummy[pass=1,fail=0]"),
         tag_Mu5_Track2_Jpsi_MU = cms.vstring("ProbeTrigger_Track0", "dummy[pass=1,fail=0]"),
         tag_Mu7_Track7_Jpsi_MU = cms.vstring("ProbeTrigger_Track0", "dummy[pass=1,fail=0]"),
+        ## added 25/05/15
+#        Mu7p5_L2Mu2_Jpsi_TK = cms.vstring("ProbeTrigger_Track0", "dummy[pass=1,fail=0]"),
+#        Mu7p5_Track2_Jpsi_TK = cms.vstring("ProbeTrigger_Track0", "dummy[pass=1,fail=0]"),
+#        tag_Mu7p5_L2Mu2_Jpsi_MU = cms.vstring("ProbeTrigger_Track0", "dummy[pass=1,fail=0]"),
+#        tag_Mu7p5_Track2_Jpsi_Mu = cms.vstring("ProbeTrigger_Track0", "dummy[pass=1,fail=0]"),
         mcTrue = cms.vstring("MC true", "dummy[true=1,false=0]"),
         Mu5_Track0_Jpsi_TK = cms.vstring("ProbeTrigger_Track0", "dummy[pass=1,fail=0]"),
         Mu3_Track3_Jpsi_TK = cms.vstring("ProbeTrigger_Track0", "dummy[pass=1,fail=0]"),
@@ -178,7 +183,6 @@ process.TnP_MuonID = Template.clone(
         PREFIX+'tnpJPsi_Run2012B.root',
         PREFIX+'tnpJPsi_Run2012C.root',
         PREFIX+'tnpJPsi_Run2012D.root',
-
     ),
     InputTreeName = cms.string("fitter_tree"),
     InputDirectoryName = cms.string("tpTree"),
@@ -191,11 +195,16 @@ IDS = ["newSoft2012"]
 #IDS = ["Loose2012"]
 #IDS = ["Loose2012", "Soft2012", "newSoft2012"]
 #IDS = [ "Glb", "TMOST", "VBTF", "PF" ]
-TRIGS = [ (2,'Mu5_Track2'), (7,'Mu7_Track7') ]
+#TRIGS = [ (2,'Mu5_Track2'), (7,'Mu7_Track7') ]
+#TRIGS = [ (2,'Mu*_L2Mu*') ] 
+TRIGS = [ (2,'Mu7p5_L2Mu2_Jpsi'), (2,'Mu7p5_Track2_Jpsi') ]
+
 
 if "mc" in scenario:
 #     process.TnP_MuonID.InputFileNames = [PREFIX+'tnpJPsi_MC53X.root']
      process.TnP_MuonID.InputFileNames = ['tnpJPsi_MC_v2_JpsiMuMu.root']
+#     process.TnP_MuonID.InputFileNames = ['tnpJpsi_MC.root']
+     #process.TnP_MuonID.InputFileNames = ['tnpJPsi_MC_v2_BuToJpsiK.root']
 
 #ALLBINS =  [("plateau_abseta",PLATEAU_ABSETA)]
 ALLBINS =  [("pt_abseta",PT_ETA_BINS)]
@@ -216,7 +225,9 @@ for ID in IDS:
                if "pt_" in X:
                     TRIGLABEL="_"+TRIG
                else:
-                    if TRIG != "Mu7_Track7": continue # use only one trigger except for turn-on
+                    #if TRIG != "Mu*_L2Mu*": continue # use only one trigger except for turn-on
+                    if TRIG != "Mu7p5_L2Mu2_Jpsi": continue # use only one trigger except for turn-on 
+                    #if TRIG != "Mu7_Track7": continue # use only one trigger except for turn-on
                     #if TRIG != "Mu5_Track2": continue # use only one trigger except for turn-on
                DEN = B.clone()
                if hasattr(DEN, "pt"):
@@ -227,16 +238,16 @@ for ID in IDS:
                #setattr(DEN, "TM", cms.vstring("pass"))
                #if "calomu" in scenario: DEN.Calo = cms.vstring("pass")
                setattr(module.Efficiencies, ID+"_"+X+TRIGLABEL, cms.PSet(
-                   EfficiencyCategoryAndState = cms.vstring(ID,"above"),
+                   EfficiencyCategoryAndState = cms.vstring(ID,"above"),     # ??
                    UnbinnedVariables = cms.vstring("mass"),
                    BinnedVariables = DEN,
                    BinToPDFmap = cms.vstring("gaussPlusExpo")
                ))
-               i#if "plateau" in X: module.SaveWorkspace = True
+               #if "plateau" in X: module.SaveWorkspace = True
                ## mc efficiency, if scenario is mc
                if "mc" in scenario:
                     setattr(module.Efficiencies, ID+"_"+X+TRIGLABEL+"_mcTrue", cms.PSet(
-                        EfficiencyCategoryAndState = cms.vstring(ID,"above"),
+                        EfficiencyCategoryAndState = cms.vstring(ID,"above"),  # ?? "pass"
                         UnbinnedVariables = cms.vstring("mass"),
                         BinnedVariables = DEN.clone(mcTrue = cms.vstring("true"))
                     ))
